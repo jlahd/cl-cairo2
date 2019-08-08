@@ -29,11 +29,11 @@
 
 (define-flexible (text-extents pointer text)
   (with-foreign-pointer (extents-pointer 
-			 (foreign-type-size 'cairo_text_extents_t))
+			 (foreign-type-size '(:struct cairo_text_extents_t)))
     (cairo_text_extents pointer text extents-pointer)
     (with-foreign-slots ((x_bearing y_bearing width height
 				    x_advance y_advance)
-			 extents-pointer cairo_text_extents_t)
+			 extents-pointer (:struct cairo_text_extents_t))
       (values x_bearing y_bearing width height x_advance y_advance))))
 
 (define-with-default-context-sync show-text text)
@@ -73,7 +73,7 @@
 (defun text-extents-t-copy-out (pointer text-extents-t)
   "Copy the contents of a memory location to a text-extents-t object."
   (with-foreign-slots ((x_bearing y_bearing width height x_advance
-				  y_advance) pointer cairo_text_extents_t)
+				  y_advance) pointer (:struct cairo_text_extents_t))
     (setf (text-extents-t-x-bearing	text-extents-t) x_bearing
 	  (text-extents-t-y-bearing	text-extents-t) y_bearing
 	  (text-extents-t-width		text-extents-t) width
@@ -84,7 +84,7 @@
 (defun text-extents-t-copy-in (pointer text-extents-t)
   "Copy the contents of a memory location to a text-extents-t object."
   (with-foreign-slots ((x_bearing y_bearing width height x_advance
-                                  y_advance) pointer cairo_text_extents_t)
+                                  y_advance) pointer (:struct cairo_text_extents_t))
     (setf x_bearing (text-extents-t-x-bearing text-extents-t)
           y_bearing (text-extents-t-y-bearing text-extents-t)
           width (text-extents-t-width text-extents-t)
@@ -96,7 +96,7 @@
   "Execute body with pointer pointing to an uninitialized location,
    then copy this to text extents and return the text extents."
   (let ((extents-name (gensym)))
-    `(with-foreign-pointer (,pointer (foreign-type-size 'cairo_text_extents_t))
+    `(with-foreign-pointer (,pointer (foreign-type-size '(:struct cairo_text_extents_t)))
        (let ((,extents-name (make-text-extents-t)))
 		 ,@body
 		 (text-extents-t-copy-out ,pointer ,extents-name)
@@ -109,7 +109,7 @@
 (defun font-extents-t-copy-out (pointer font-extents-t)
   "Copy the contents of a memory location to a font-extents-t object."
   (with-foreign-slots ((ascent descent height max_x_advance
-			       max_y_advance) pointer cairo_font_extents_t)
+			       max_y_advance) pointer (:struct cairo_font_extents_t))
     (setf (font-extents-t-ascent        font-extents-t) ascent
           (font-extents-t-descent       font-extents-t) descent
           (font-extents-t-height        font-extents-t) height
@@ -120,7 +120,7 @@
   "Copy the contents of a font-extents-t object to a cairo_font_extents_t
 pointer."
   (with-foreign-slots ((ascent descent height max_x_advance
-			       max_y_advance) pointer cairo_font_extents_t)
+			       max_y_advance) pointer (:struct cairo_font_extents_t))
     (setf ascent (font-extents-t-ascent font-extents-t)
           descent (font-extents-t-descent font-extents-t)
           height (font-extents-t-height font-extents-t)
@@ -131,7 +131,7 @@ pointer."
   "Execute body with pointer pointing to an uninitialized location,
    then copy this to text extents and return the text extents."
   (let ((extents-name (gensym)))
-    `(with-foreign-pointer (,pointer (foreign-type-size 'cairo_font_extents_t))
+    `(with-foreign-pointer (,pointer (foreign-type-size '(:struct cairo_font_extents_t)))
        (let ((,extents-name (make-font-extents-t)))
 		 ,@body
 		 (font-extents-t-copy-out ,pointer ,extents-name)
@@ -156,26 +156,26 @@ pointer."
 (defun set-glyph (glyph-ptr index x y)
   (setf (mem-ref glyph-ptr :unsigned-long) index)
   (setf (mem-ref (inc-pointer glyph-ptr
-                              #.(foreign-slot-offset 'cairo_glyph_t 'x))
+                              #.(foreign-slot-offset '(:struct cairo_glyph_t) 'x))
                  :double)
         (coerce x 'double-float))
   (setf (mem-ref (inc-pointer glyph-ptr
-                              #.(foreign-slot-offset 'cairo_glyph_t 'y))
+                              #.(foreign-slot-offset '(:struct cairo_glyph_t) 'y))
                  :double)
         (coerce y 'double-float)))
 
 (defun get-glyph (glyph-array n)
   (let ((glyph-ptr (inc-pointer (glyph-array-pointer glyph-array)
-                                (* n #.(foreign-type-size 'cairo_glyph_t)))))
+                                (* n #.(foreign-type-size '(:struct cairo_glyph_t))))))
     (list
      (mem-ref glyph-ptr :unsigned-long)
-     (mem-ref (inc-pointer glyph-ptr #.(foreign-slot-offset 'cairo_glyph_t 'x))
+     (mem-ref (inc-pointer glyph-ptr #.(foreign-slot-offset '(:struct cairo_glyph_t) 'x))
               :double)
-     (mem-ref (inc-pointer glyph-ptr #.(foreign-slot-offset 'cairo_glyph_t 'y))
+     (mem-ref (inc-pointer glyph-ptr #.(foreign-slot-offset '(:struct cairo_glyph_t) 'y))
               :double))))
 
 (defun make-glyph-array (count)
-  (let* ((ptr (cffi:foreign-alloc 'cairo_glyph_t :count count))
+  (let* ((ptr (cffi:foreign-alloc '(:struct cairo_glyph_t) :count count))
          (array (%make-glyph-array :count count :pointer ptr)))
     (tg:finalize array (lambda () (foreign-free ptr)))
     array))
@@ -186,7 +186,7 @@ pointer."
     (error "Glyph array too small (length ~A)" (glyph-array-count glyph-array)))
   (let* ((next (glyph-array-filled glyph-array))
          (glyph (inc-pointer (glyph-array-pointer glyph-array)
-                             (* next #.(cffi:foreign-type-size 'cairo_glyph_t)))))
+                             (* next #.(cffi:foreign-type-size '(:struct cairo_glyph_t))))))
     (set-glyph glyph index x y)
     (incf (glyph-array-filled glyph-array))
     (values)))
@@ -195,7 +195,7 @@ pointer."
   (when (>= array-index (glyph-array-count glyph-array))
     (error "Glyph array too small (length ~A)" (glyph-array-count glyph-array)))
   (let* ((glyph (inc-pointer (glyph-array-pointer glyph-array)
-                             (* array-index #.(cffi:foreign-type-size 'cairo_glyph_t)))))
+                             (* array-index #.(cffi:foreign-type-size '(:struct cairo_glyph_t))))))
     (set-glyph glyph glyph-index x y)
     (when (>= array-index (glyph-array-filled glyph-array))
       (setf (glyph-array-filled glyph-array) (1+ array-index)))
