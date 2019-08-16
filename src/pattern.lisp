@@ -263,7 +263,6 @@
     (with-unique-names (offset-name color-name)
     `(let ((,pattern-name ,(list ',(prepend-intern "create-" type :suffix "-pattern") ,@args)))
        (loop for (,offset-name ,color-name) in ,color-stops
-	     do (format t "~a~%" (class-of ,color-name))
 	     do (pattern-add-color-stop ,pattern-name ,offset-name ,color-name))
        (prog1
 	   (progn ,@body)
